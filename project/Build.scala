@@ -1,14 +1,19 @@
 import spray.revolver.RevolverPlugin._
 import sbt.Keys._
 import sbt._
+import com.zavakid.sbt._
 
 
 object DumpBuild extends Build {
 
   //lazy val master: Project = Project(base = file("master"), id = "master")
 
+  lazy val root = Project(
+    id = "processor",
+    base = file(".")
+  ).enablePlugins(SbtOneLog)
 
-  override lazy val  settings = super.settings ++ Seq(
+override lazy val  settings = super.settings ++ Seq(
     organization := "com.github.kuhnen",
     version := "0.1",
     scalaVersion := "2.11.4",

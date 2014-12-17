@@ -43,5 +43,17 @@ start Master
 start Worker
 start Singleton
 
+In SBT, just run ```docker:publishLocal``` to create a local docker container. 
 
+To launch the first node, which will be the seed node:
+
+```
+$ docker run -i -t --rm --name seed kuhnen/processor:0.1
+```
+
+To add a member to the cluster:
+
+```
+$ docker run --rm --name c1 --link seed:seed -i -t kuhnen/processor:0.1
+```
 
