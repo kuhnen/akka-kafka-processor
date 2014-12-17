@@ -1,5 +1,5 @@
-# iAuto scalable (AWS) cluster to work with topics from kafka cluster:
-#  Working project.....
+## Auto scalable (AWS) cluster to work with topics from kafka cluster:
+# Working project.....
 
 ### Master responsabilities:
 
