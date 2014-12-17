@@ -1,5 +1,5 @@
-#H2 Auto scalable (AWS) cluster to work with topics from kafka cluster:
-#H1  Working project.....
+H2 Auto scalable (AWS) cluster to work with topics from kafka cluster:
+H1  Working project.....
 
 H3 Master responsabilities:
 
