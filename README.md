@@ -1,7 +1,7 @@
-H2 Auto scalable (AWS) cluster to work with topics from kafka cluster:
-H1  Working project.....
+# iAuto scalable (AWS) cluster to work with topics from kafka cluster:
+#  Working project.....
 
-H3 Master responsabilities:
+### Master responsabilities:
 
 1.  Verify new topics
 2.  Register new workers(nodes) 
@@ -20,19 +20,19 @@ or  by directory partition  like  /date/client/product
 12.  The master should be able to recover from a crash
 13.  Where to save the configuration?   Every master with a liteSql  and duplicate?
 
-# H2Workers:
+### Workers:
 
 1.  should be able to receive the messages from a topic,  and save it to s3 (future (cassandra,  elastic search))
 2.  Should receive from the master how to partition the data,  and how to commit
 3.  Should be able to tell the master that the lag is getting higher, so the master can try to set up a new node
 4.  Order file by some atribute
 
-#H3 Inspiration:
+### Inspiration:
 1.  Secor
 2.  Bifrost
 3.  Camus
 
-# H3ROADMAP:
+# ROADMAP:
 
 Version 0.1 ->  master finding topics,  registering workers, ask workers to process topic, save file with size X, compress and send to s3
 
