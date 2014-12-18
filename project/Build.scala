@@ -1,24 +1,28 @@
-import spray.revolver.RevolverPlugin._
 import sbt.Keys._
 import sbt._
 import com.zavakid.sbt._
 
+object ProcessorBuild extends Build {
 
-object DumpBuild extends Build {
+  import com.typesafe.sbt.SbtMultiJvm
+  import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 
-  //lazy val master: Project = Project(base = file("master"), id = "master")
+  val project = Project(
+    id = "root",
+    base = file("."),
+    settings = Defaults.coreDefaultSettings ++ SbtMultiJvm.multiJvmSettings ++ settings
+  ) configs (MultiJvm)
 
-  lazy val root = Project(
-    id = "processor",
-    base = file(".")
-  ).enablePlugins(SbtOneLog)
 
 override lazy val  settings = super.settings ++ Seq(
     organization := "com.github.kuhnen",
+    name := "akka-kafka-processor",
     version := "0.1",
     scalaVersion := "2.11.4",
     resolvers ++= Dependencies.resolvers,
     libraryDependencies ++= Dependencies.libraryDependenciesCore,
+
+
     scalacOptions ++= Seq(
       "-unchecked",
       "-deprecation",
@@ -64,6 +68,8 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-slf4j" % akka,
     "com.typesafe.akka" %% "akka-cluster" % akka,
     "com.typesafe.akka" %% "akka-testkit" % akka % "test",
+    "com.typesafe.akka" %% "akka-contrib" %  akka,
+    "com.typesafe.akka" %% "akka-multi-node-testkit" % akka,
     "io.spray" %% "spray-can" % spray,
     "io.spray" %% "spray-util" % spray,
     "io.spray" %% "spray-routing" % spray,
@@ -85,6 +91,9 @@ object Dependencies {
     "com.typesafe" % "config" % "1.2.1",
     "org.aspectj" % "aspectjweaver" % "1.8.4",
     "com.101tec"  % "zkclient" % "0.4"
+    //      TypesafeLibrary.akkaActor.value,
+ // TypesafeLibrary.akkaMultiNodeTestkit.value,
+  //"org.scalatest" %% "scalatest" % "2.2.2" %
   )
 
 
