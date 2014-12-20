@@ -1,4 +1,4 @@
-package com.github.kuhnen.multinode
+package com.github.kuhnen.test.multinode
 
 /**
  * Created by kuhnen on 12/18/14.
@@ -6,21 +6,22 @@ package com.github.kuhnen.multinode
 //#package
 
 //#config
-  import akka.remote.testkit.MultiNodeConfig
+import akka.remote.testkit.MultiNodeConfig
 
 object MultiNodeSampleConfig extends MultiNodeConfig {
   val node1 = role("node1")
   val node2 = role("node2")
+  val node3 = role("node3")
 }
-//#config
 
 //#spec
+import akka.actor.{Actor, Props}
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import akka.actor.{ Props, Actor }
 
 class MultiNodeSampleSpecMultiJvmNode1 extends MultiNodeSample
 class MultiNodeSampleSpecMultiJvmNode2 extends MultiNodeSample
+class MultiNodeSampleSpecMultiJvmNode3 extends MultiNodeSample
 
 object MultiNodeSample {
   class Ponger extends Actor {
@@ -30,13 +31,14 @@ object MultiNodeSample {
   }
 }
 
-class MultiNodeSample extends MultiNodeSpec(MultiNodeSampleConfig)
-with STMultiNodeSpec with ImplicitSender {
+class MultiNodeSample extends MultiNodeSpec(MultiNodeSampleConfig) with STMultiNodeSpec with ImplicitSender {
 
-  import MultiNodeSampleConfig._
-  import MultiNodeSample._
+  import com.github.kuhnen.test.multinode.MultiNodeSample._
+  import com.github.kuhnen.test.multinode.MultiNodeSampleConfig._
 
   def initialParticipants = roles.size
+  println(s"Roles size: $initialParticipants")
+
 
   "A MultiNodeSample" must {
 
@@ -57,8 +59,14 @@ with STMultiNodeSpec with ImplicitSender {
         enterBarrier("deployed")
       }
 
+      runOn(node3){
+        enterBarrier("deployed")
+      }
+
       enterBarrier("finished")
+
     }
   }
 }
 //#spec
+

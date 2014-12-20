@@ -20,9 +20,7 @@ override lazy val  settings = super.settings ++ Seq(
     version := "0.1",
     scalaVersion := "2.11.4",
     resolvers ++= Dependencies.resolvers,
-    libraryDependencies ++= Dependencies.libraryDependenciesCore,
-
-
+    libraryDependencies ++= Dependencies.libraryDependenciesCore ++ Dependencies.test,
     scalacOptions ++= Seq(
       "-unchecked",
       "-deprecation",
@@ -67,35 +65,34 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-actor" % akka,
     "com.typesafe.akka" %% "akka-slf4j" % akka,
     "com.typesafe.akka" %% "akka-cluster" % akka,
-    "com.typesafe.akka" %% "akka-testkit" % akka % "test",
     "com.typesafe.akka" %% "akka-contrib" %  akka,
-    "com.typesafe.akka" %% "akka-multi-node-testkit" % akka,
     "io.spray" %% "spray-can" % spray,
     "io.spray" %% "spray-util" % spray,
     "io.spray" %% "spray-routing" % spray,
-    "io.spray" %% "spray-testkit" % spray % "test",
     "org.json4s" %% "json4s-native" % json,
     "org.json4s" %% "json4s-ext" % json,
     "io.kamon" %% "kamon-core" % kamon,
     "io.kamon" %% "kamon-spray" % kamon,
-    "io.kamon" %% "kamon-newrelic" % kamon,
+    //"io.kamon" %% "kamon-newrelic" % kamon,
     "io.kamon" %% "kamon-system-metrics" % kamon,
     "io.kamon" %% "kamon-statsd" % kamon,
     "io.kamon" %% "kamon-log-reporter" % kamon,
-    "com.sclasen" %% "akka-kafka" % "0.0.9-SNAPSHOT" % "compile" exclude("com.101tec", "zkclient"),
+    "com.sclasen" %% "akka-kafka" % "0.0.9-SNAPSHOT" % "compile" exclude("com.101tec", "zkclient") exclude("io.netty", "netty"),
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
     "ch.qos.logback" % "logback-classic" % "1.1.2",
-    "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" % "test",
     "com.github.nscala-time" %% "nscala-time" % "1.6.0",
-    "org.scalatest" %% "scalatest" % "2.2.2" % "test",
     "com.typesafe" % "config" % "1.2.1",
     "org.aspectj" % "aspectjweaver" % "1.8.4",
     "com.101tec"  % "zkclient" % "0.4"
-    //      TypesafeLibrary.akkaActor.value,
- // TypesafeLibrary.akkaMultiNodeTestkit.value,
-  //"org.scalatest" %% "scalatest" % "2.2.2" %
   )
 
+  lazy val test = Seq(
+    "com.typesafe.akka" %% "akka-testkit" % akka ,//% "test",
+    "com.typesafe.akka" %% "akka-multi-node-testkit" % akka,
+    "io.spray" %% "spray-testkit" % spray % "test",
+    "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" exclude("org.scalatest", "scalatest_2.11"), //% "test",
+    "org.scalatest" %% "scalatest" % "2.2.2" // % "test",
+  )
 
 }
 
