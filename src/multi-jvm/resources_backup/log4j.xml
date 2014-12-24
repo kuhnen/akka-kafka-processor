@@ -8,15 +8,15 @@
         </encoder>
     </appender>
 
-    <logger name="com.github.kuhnen" level="debug" additivity="false">
+    <logger name="com.github.kuhnen" level="INFO" additivity="false">
         <appender-ref ref="console" />
     </logger>
 
-    <logger name="akka" level="debug" additivity="false">
+    <logger name="akka" level="INFO" additivity="false">
         <appender-ref ref="console" />
     </logger>
 
-    <root level="debug">
+    <root level="INFO">
         <appender-ref ref="console"/>
     </root>
 
