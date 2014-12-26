@@ -18,13 +18,13 @@ trait CommonSpecs extends FlatSpecLike with Matchers with BeforeAndAfterAll with
 
 //}
 
-abstract class CommonActorSpec(s: ActorSystem) extends TestKit(s) with ImplicitSender with CommonSpecs {
+abstract class CommonActorSpec(system: ActorSystem) extends TestKit(system) with ImplicitSender with CommonSpecs {
 
-  val _system: ActorSystem = s
+  //val _system: ActorSystem = s
 
   override def beforeAll() = { }
 
-  override def afterAll() = TestKit.shutdownActorSystem(_system)
+  override def afterAll() = TestKit.shutdownActorSystem(system)
 
 
 }

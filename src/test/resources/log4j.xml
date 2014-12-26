@@ -12,19 +12,19 @@
     </appender>
 
     <logger name="com.github.kuhnen">
-        <level value="DEBUG"/>
-        <appender-ref ref="console" />
-    </logger>
-
-    <logger name="akka">
         <level value="INFO"/>
         <appender-ref ref="console" />
     </logger>
 
+    <!--<logger name="akka">
+        <level value="INFO"/>
+        <appender-ref ref="console" />
+    </logger> -->
+
 
 
     <root>
-        <priority value="DEBUG"/>
+        <priority value="INFO"/>
         <appender-ref ref="console"/>
     </root>
 
