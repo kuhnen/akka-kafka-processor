@@ -8,36 +8,13 @@ import akka.actor.SupervisorStrategy.{Escalate, Restart}
 import akka.actor._
 import akka.contrib.pattern.{ClusterReceptionistExtension, DistributedPubSubExtension}
 import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
-import com.github.kuhnen.master.TopicWatcher.Topics
 import com.github.kuhnen.master.WorkersCoordinator.RegisterWorker
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
+import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
 
 import scala.concurrent.duration.Deadline
 import scala.reflect.ClassTag
 
-object Master {
-
-  val ResultsTopic = "results"
-
-  //def props(workTimeout: FiniteDuration): Props =
-  //  Props(classOf[Master], workTimeout)
-
-
-  //  def props: Props = Props(classOf[Master])
-
-  case class Ack(workId: String)
-
-  private sealed trait WorkerStatus
-
-  private case object Idle extends WorkerStatus
-
-  private case class Busy(workId: String, deadline: Deadline) extends WorkerStatus
-
-  private case class WorkerState(ref: ActorRef, status: WorkerStatus)
-
-  private case object CleanupTick
-
-}
 
 object MasterActor {
 
@@ -103,7 +80,7 @@ class MasterActor[T <: Actor](implicit tags: ClassTag[T]) extends Actor with Act
 
   def receive = {
 
-    case topics: Topics =>
+    case TopicsAvailable(topics) =>
       log.info(s"Master knows about these topics: $topics")
       coordinatorActor ! topics
 

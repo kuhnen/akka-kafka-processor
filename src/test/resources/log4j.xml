@@ -12,7 +12,7 @@
     </appender>
 
     <logger name="com.github.kuhnen">
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="console" />
     </logger>
 
@@ -20,6 +20,11 @@
         <level value="INFO"/>
         <appender-ref ref="console" />
     </logger> -->
+
+    <logger name="com.sclasen.akka.kafka">
+        <level value="INFO"/>
+        <appender-ref ref="console" />
+    </logger>
 
 
 
