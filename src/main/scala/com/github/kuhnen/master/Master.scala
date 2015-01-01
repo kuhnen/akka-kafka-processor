@@ -18,7 +18,10 @@ import scala.reflect.ClassTag
 
 object MasterActor {
 
-  def props[T <: Actor](implicit tag: ClassTag[T]) = Props(new MasterActor[T])
+  type ActorBuilder = ActorRefFactory => ActorRef
+  //def props[T <: Actor](implicit tag: ClassTag[T]) = Props(new MasterActor[T])
+  def props(topicWatcherMaker: ActorRefFactory => ActorRef,
+            coordinatorActorMaker: ActorRefFactory => ActorRef) = Props(classOf[MasterActor], topicWatcherMaker, coordinatorActorMaker)
 
 }
 
@@ -32,9 +35,12 @@ object MasterWorkerProtocol {
 
 import scala.concurrent.duration._
 
-class MasterActor[T <: Actor](implicit tags: ClassTag[T]) extends Actor with ActorLogging {
+//class MasterActor[T <: Actor](implicit tags: ClassTag[T]) extends Actor with ActorLogging {
+//class MasterActor(topicsWatcher: Props, coordinator: Props) extends Actor with ActorLogging {
+  class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
+                    coordinatorActorMaker: ActorRefFactory => ActorRef) extends Actor with ActorLogging {
 
-  type TopicWatcherType = T
+  //type TopicWatcherType = T
   implicit val ec = context.system.dispatcher
   val mediator = DistributedPubSubExtension(context.system).mediator
   ClusterReceptionistExtension(context.system).registerService(self)
@@ -43,7 +49,6 @@ class MasterActor[T <: Actor](implicit tags: ClassTag[T]) extends Actor with Act
   var coordinatorActor: ActorRef = _
   var topicsCancellable: Cancellable = _
   //var topicsAvailable: Set[String] = Set.empty
-
 
   override val supervisorStrategy = OneForOneStrategy(
     maxNrOfRetries = 1,
@@ -59,9 +64,11 @@ class MasterActor[T <: Actor](implicit tags: ClassTag[T]) extends Actor with Act
 
   override def preStart(): Unit = {
 
-    topicWatcher = context.actorOf(Props[TopicWatcherType], name = "kafka-topic-watcher")
+    //topicWatcher = context.actorOf(topicsWatcher, name = "kafka-topic-watcher")
+    topicWatcher = topicWatcherMaker(context)
     topicsCancellable = context.system.scheduler.schedule(5 seconds, 2 seconds, topicWatcher, KafkaTopicWatcherActor.GetTopics)
-    coordinatorActor = context.actorOf(WorkersCoordinator.props(), name = "WorkersCoodinator")
+    //coordinatorActor = context.actorOf(WorkersCoordinator.props(), name = "WorkersCoodinator")
+    coordinatorActor = coordinatorActorMaker(context)
 
   }
 
@@ -69,20 +76,12 @@ class MasterActor[T <: Actor](implicit tags: ClassTag[T]) extends Actor with Act
     topicsCancellable.cancel()
   }
 
-  //def askWorkersForWorkingTopics() = {
-  // workers.map(_ ask WorkingTopics)
-  // }
-
-  // def delegateTopicsToWorks(): Unit = {
-  //  val topicsByWorker = askWorkersForWorkingTopics
-
-  //}
-
   def receive = {
 
     case TopicsAvailable(topics) =>
       log.info(s"Master knows about these topics: $topics")
-      coordinatorActor ! topics
+      topicsCancellable.cancel()
+      coordinatorActor ! TopicsAvailable(topics)
 
     case RegisterWorkerOnCluster(worker) =>
       //workers = workers + worker

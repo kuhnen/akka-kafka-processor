@@ -11,17 +11,7 @@ import com.typesafe.config.ConfigFactory
  * Created by kuhnen on 12/26/14.
  */
 
-object WorkersCoordinatorSpec {
 
-  val confStr = """akka {
-    actor.provider = "akka.actor.LocalActorRefProvider"
-    loggers = [akka.event.slf4j.Slf4jLogger]
-    loglevel = INFO
-  }"""
-
-  val conf = ConfigFactory.parseString(confStr)
-
-}
 class WorkesCoordinatorSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
 
   def this() = this(ActorSystem("CoordinatorSpec", LocalConf.conf))
@@ -53,6 +43,14 @@ class WorkesCoordinatorSpec(_system: ActorSystem) extends CommonActorSpec(_syste
     coordinator.workers should have size 1
     coordinatorRef ! RegisterWorker(workProbe.ref)
     coordinator.workers should have size 1
+  }
+
+  ignore should "handle empty topics" in {
+    withCoordinatorRegisteredWorker { (coordinatorRef, probe) =>
+      val coordinator = coordinatorRef.underlyingActor
+      coordinatorRef ! TopicsAvailable.empty
+
+    }
   }
 
   ignore should "ask workers which topics they are already working when receive avaialable topics " in {

@@ -1,6 +1,7 @@
 package com.github.kuhnen.master
 
 import akka.actor._
+import akka.event.LoggingReceive
 import com.github.kuhnen.master.WorkersCoordinator.{RegisterWorker, Topics, Work, WorkingTopics}
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
 
@@ -18,9 +19,13 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
   override def receive = idle
 
-  def idle: Receive = {
+  def idle: Receive = LoggingReceive {
 
     case RegisterWorker(worker) => workers = workers + worker
+
+    case TopicsAvailable(topics) if topics.isEmpty => ???
+      //TODO stop all workers, why should we have workers if there is nothing to do?
+
     case TopicsAvailable(topics) => // delegateToWorkers(topics)
       availableTopics = topics
       val emptyTopicsByWorker = Map.empty[ActorRef, Set[String]].withDefaultValue(Set.empty)

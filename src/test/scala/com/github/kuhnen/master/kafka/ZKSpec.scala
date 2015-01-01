@@ -17,7 +17,7 @@ class ZKConfSpec extends CommonSpecs {
 
   it should "retrieve the right configuration from file" in {
 
-    hosts shouldBe "localhost"
+    hosts shouldBe "localhost:2181"
     sessionTimeOut shouldBe 30000
     connectionTimeOut shouldBe 30000
 

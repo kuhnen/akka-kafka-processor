@@ -8,8 +8,9 @@ import akka.actor._
 import akka.contrib.pattern.{ClusterClient, ClusterSingletonManager}
 import akka.japi.Util.immutableSeq
 import com.github.kuhnen.ClusterConfig._
+import com.github.kuhnen.master.MasterActor.ActorBuilder
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
-import com.github.kuhnen.master.{ClusterListener, MasterActor}
+import com.github.kuhnen.master.{WorkersCoordinator, ClusterListener, MasterActor}
 import com.typesafe.config.ConfigFactory
 
 object StartUp {
@@ -35,8 +36,10 @@ object StartUp {
       withFallback(ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)).
       withFallback(ConfigFactory.load())
 
-    val system = ActorSystem(clusterName, conf)
-    system.actorOf(ClusterSingletonManager.props(MasterActor.props[KafkaTopicWatcherActor], "active", PoisonPill, Some(role)), "master")
+    val system = ActorSystem(clusterName, conf);
+    val topicWatcherMaker: ActorBuilder = { context => context.actorOf(KafkaTopicWatcherActor.props()) }
+    val coordinatorMaker: ActorBuilder = { context => context.actorOf(WorkersCoordinator.props()) }
+    system.actorOf(ClusterSingletonManager.props(MasterActor.props(topicWatcherMaker, coordinatorMaker), "active", PoisonPill, Some(role)), "master")
 
 
   }
