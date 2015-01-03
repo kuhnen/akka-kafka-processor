@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <param name="Target" value="System.out"/>
+        <encoder>
+            <!--<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>-->
+            <pattern>%X{akkaTimestamp} %-5level %logger{5} %X{akkaSource} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.github.kuhnen" additivity="false">
+        <level value="DEBUG"/>
+        <appender-ref ref="STDOUT" />
+    </logger>
+
+    <logger name="akka" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="STDOUT" />
+    </logger> -->
+
+    <logger name="org.apache.zookeeper" additivity="false">
+        <level value="WARN"/>
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="org.I0Itec" additivity="false">
+        <level value="WARN"/>
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="com.sclasen.akka.kafka" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="STDOUT" />
+    </logger>
+
+
+    <!-- Simple file output -->
+    <!--<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/akka-kafka-processor.log</file>
+        <append>true</append>
+
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+
+            <fileNamePattern>logs/akka-kafka-processor-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+
+                <maxFileSize>64 MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+
+
+    </appender> -->
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+</configuration>

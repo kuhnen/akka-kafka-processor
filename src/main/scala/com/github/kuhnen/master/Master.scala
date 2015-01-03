@@ -7,21 +7,23 @@ package com.github.kuhnen.master
 import akka.actor.SupervisorStrategy.{Escalate, Restart}
 import akka.actor._
 import akka.contrib.pattern.{ClusterReceptionistExtension, DistributedPubSubExtension}
+import akka.event.LoggingReceive
 import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
 import com.github.kuhnen.master.WorkersCoordinator.RegisterWorker
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
 
-import scala.concurrent.duration.Deadline
-import scala.reflect.ClassTag
-
+import scala.concurrent.duration._
 
 object MasterActor {
 
   type ActorBuilder = ActorRefFactory => ActorRef
-  //def props[T <: Actor](implicit tag: ClassTag[T]) = Props(new MasterActor[T])
+
   def props(topicWatcherMaker: ActorRefFactory => ActorRef,
             coordinatorActorMaker: ActorRefFactory => ActorRef) = Props(classOf[MasterActor], topicWatcherMaker, coordinatorActorMaker)
+
+  val topicWatcherInterval = 10 seconds
+  val topicWatcherInitialDelay = 10 seconds
 
 }
 
@@ -29,18 +31,17 @@ object MasterWorkerProtocol {
 
   case class RegisterWorkerOnCluster(work: ActorRef)
 
-  //  object WorkingTopics
+  //TODO
+  case class Subscribe(worker: ActorRef, topic: String)
 
 }
 
-import scala.concurrent.duration._
 
-//class MasterActor[T <: Actor](implicit tags: ClassTag[T]) extends Actor with ActorLogging {
-//class MasterActor(topicsWatcher: Props, coordinator: Props) extends Actor with ActorLogging {
-  class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
-                    coordinatorActorMaker: ActorRefFactory => ActorRef) extends Actor with ActorLogging {
+class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
+                  coordinatorActorMaker: ActorRefFactory => ActorRef) extends Actor with ActorLogging {
 
-  //type TopicWatcherType = T
+  import com.github.kuhnen.master.MasterActor._
+
   implicit val ec = context.system.dispatcher
   val mediator = DistributedPubSubExtension(context.system).mediator
   ClusterReceptionistExtension(context.system).registerService(self)
@@ -48,7 +49,6 @@ import scala.concurrent.duration._
   var topicWatcher: ActorRef = _
   var coordinatorActor: ActorRef = _
   var topicsCancellable: Cancellable = _
-  //var topicsAvailable: Set[String] = Set.empty
 
   override val supervisorStrategy = OneForOneStrategy(
     maxNrOfRetries = 1,
@@ -66,9 +66,9 @@ import scala.concurrent.duration._
 
     //topicWatcher = context.actorOf(topicsWatcher, name = "kafka-topic-watcher")
     topicWatcher = topicWatcherMaker(context)
-    topicsCancellable = context.system.scheduler.schedule(5 seconds, 2 seconds, topicWatcher, KafkaTopicWatcherActor.GetTopics)
     //coordinatorActor = context.actorOf(WorkersCoordinator.props(), name = "WorkersCoodinator")
     coordinatorActor = coordinatorActorMaker(context)
+    topicsCancellable = context.system.scheduler.schedule(topicWatcherInitialDelay, topicWatcherInitialDelay, topicWatcher, KafkaTopicWatcherActor.GetTopics)
 
   }
 
@@ -76,11 +76,10 @@ import scala.concurrent.duration._
     topicsCancellable.cancel()
   }
 
-  def receive = {
+  def receive = LoggingReceive {
 
     case TopicsAvailable(topics) =>
-      log.info(s"Master knows about these topics: $topics")
-      topicsCancellable.cancel()
+      //topicsCancellable.cancel()
       coordinatorActor ! TopicsAvailable(topics)
 
     case RegisterWorkerOnCluster(worker) =>

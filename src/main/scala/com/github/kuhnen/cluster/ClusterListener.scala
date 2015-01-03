@@ -1,13 +1,17 @@
-package com.github.kuhnen.master
+package com.github.kuhnen.cluster
 
 /**
  * Created by kuhnen on 12/16/14.
  */
 
-import akka.cluster.{Member, Cluster}
+import akka.actor.{Props, Actor, ActorLogging}
+import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-import akka.actor.ActorLogging
-import akka.actor.Actor
+
+object ClusterListener {
+
+  def props() = Props[ClusterListener]
+}
 
 class ClusterListener extends Actor with ActorLogging {
   // subscribe to cluster changes, re-subscribe when restart
@@ -36,6 +40,7 @@ class ClusterListener extends Actor with ActorLogging {
         member.address, previousStatus)
     case LeaderChanged(member) => log.info("Leader changed: " + member)
     case any: MemberEvent => log.info("Member Event: " + any.toString) // ignore
+    case any =>
   }
 
   //def register(member: Member) =

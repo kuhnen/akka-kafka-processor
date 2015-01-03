@@ -7,13 +7,15 @@ package com.github.kuhnen
 import akka.actor._
 import akka.contrib.pattern.{ClusterClient, ClusterSingletonManager}
 import akka.japi.Util.immutableSeq
-import com.github.kuhnen.ClusterConfig._
+import com.github.kuhnen.cluster.ClusterConfig
 import com.github.kuhnen.master.MasterActor.ActorBuilder
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
-import com.github.kuhnen.master.{WorkersCoordinator, ClusterListener, MasterActor}
+import com.github.kuhnen.master.{WorkersCoordinator, MasterActor}
 import com.typesafe.config.ConfigFactory
 
 object StartUp {
+
+  import ClusterConfig._
 
   def startWorker(port: Int) = {
     // load worker.conf
@@ -56,11 +58,11 @@ object ProcessorApp {
     // startBackend(2552, "backend")
     Thread.sleep(5000)
     startWorker(2555)
-    implicit val system = ActorSystem(clusterName)
+//    implicit val system = ActorSystem(clusterName)
 
-    val clusterListener = system.actorOf(Props[ClusterListener], name = "clusterListener")
+   // val clusterListener = system.actorOf(Props[ClusterListener], name = "clusterListener")
 
-    sys.addShutdownHook(system.shutdown())
+  //  sys.addShutdownHook(system.shutdown())
 
 
     //    startupSharedJournal(system, startStore = (port == 2551), path =

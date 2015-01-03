@@ -11,23 +11,11 @@ import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
  */
 trait CommonSpecs extends FlatSpecLike with Matchers with BeforeAndAfterAll with ScalaFutures
 
-//
-//
-// trait ActorCommonSpecs extends ImplicitSender {
-
-// val system = ActorSystem("test")
-
-//}
-
 abstract class CommonActorSpec(system: ActorSystem) extends TestKit(system) with ImplicitSender with CommonSpecs {
-
-  //val _system: ActorSystem = s
-
 
   override def beforeAll() = {}
 
   override def afterAll() = TestKit.shutdownActorSystem(system)
-
 
 }
 
@@ -35,7 +23,8 @@ object LocalConf {
 
   val confStr = """akka {
     actor.provider = "akka.actor.LocalActorRefProvider"
-    loggers = [akka.event.slf4j.Slf4jLogger]
+    #loggers = [akka.event.slf4j.Slf4jLogger, "akka.testkit.TestEventListener"]
+    loggers = ["akka.testkit.TestEventListener"]
     loglevel = DEBUG
 
                    actor {
@@ -70,7 +59,5 @@ object LocalConf {
   val conf = ConfigFactory.parseString(confStr)
 
 
-
 }
-
 

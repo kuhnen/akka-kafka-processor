@@ -13,7 +13,6 @@ import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
 //TODO refactor,  still thinking about how to make it as a FSM
 class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
-  //var topicsByWorker =
   var availableTopics = Set.empty[String]
   var workers = Set.empty[ActorRef]
 
@@ -23,10 +22,14 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
     case RegisterWorker(worker) => workers = workers + worker
 
-    case TopicsAvailable(topics) if topics.isEmpty => ???
+    case TopicsAvailable(topics) if topics.isEmpty =>
       //TODO stop all workers, why should we have workers if there is nothing to do?
+      log.warning("No topics available to work")
 
-    case TopicsAvailable(topics) => // delegateToWorkers(topics)
+    case TopicsAvailable(topics) if workers.size == 0 =>
+      log.warning("There is no workers registered")
+
+    case TopicsAvailable(topics) =>
       availableTopics = topics
       val emptyTopicsByWorker = Map.empty[ActorRef, Set[String]].withDefaultValue(Set.empty)
       workers.foreach { _ ! WorkingTopics  }

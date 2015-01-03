@@ -35,6 +35,8 @@ parallelExecution in Test := false
 
 enablePlugins(JavaAppPackaging)
 
+javaOptions in run := "-Djava.library.path=libsigar-amd64-linux-1.6.4.so" :: Nil
+
 
 initialCommands :=
   """

@@ -11,7 +11,7 @@ object ProcessorBuild extends Build {
     id = "root",
     base = file("."),
     settings = Defaults.coreDefaultSettings ++ SbtMultiJvm.multiJvmSettings ++ settings
-  ) configs (MultiJvm)
+  ).enablePlugins(SbtOneLog)// configs (MultiJvm)
 
 
 override lazy val  settings = super.settings ++ Seq(
@@ -83,7 +83,8 @@ object Dependencies {
     "com.github.nscala-time" %% "nscala-time" % "1.6.0",
     "com.typesafe" % "config" % "1.2.1",
     "org.aspectj" % "aspectjweaver" % "1.8.4",
-    "com.101tec"  % "zkclient" % "0.4"
+    "com.101tec"  % "zkclient" % "0.4",
+    "org.fusesource" % "sigar" % "1.6.4" classifier("native") classifier("")
   )
 
   lazy val test = Seq(
@@ -92,6 +93,7 @@ object Dependencies {
     "io.spray" %% "spray-testkit" % spray % "test",
     "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" exclude("org.scalatest", "scalatest_2.11"), //% "test",
     "org.scalatest" %% "scalatest" % "2.2.2" // % "test",
+
   )
 
 }

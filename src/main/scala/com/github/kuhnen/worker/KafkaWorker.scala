@@ -3,16 +3,14 @@ package com.github.kuhnen.worker
 import akka.actor._
 import akka.contrib.pattern.ClusterClient.SendToAll
 import akka.event.LoggingReceive
+import akka.pattern.pipe
 import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
 import com.github.kuhnen.master.WorkersCoordinator.{Topics, Work, WorkingTopics}
 import com.github.kuhnen.master.kafka.ZooKeeperConfig
 import com.sclasen.akka.kafka.{AkkaConsumer, AkkaConsumerProps, CommitConfig}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import kafka.message.MessageAndMetadata
 import kafka.serializer.StringDecoder
-
-import scala.concurrent.Future
-import akka.pattern.pipe
 
 import scala.util.Try
 
@@ -23,7 +21,9 @@ import scala.util.Try
 object KafkaWorker {
 
   val singletonMasterPath = ConfigFactory.load().getConfig("processor.cluster.master").getString("path")
+
   def props(clusterClient: ActorRef, childMaker: (ActorRefFactory, String) => ActorRef): Props = Props(classOf[KafkaWorker], clusterClient, childMaker)
+
   case class Execute(topic: String)
 
 }
@@ -31,7 +31,9 @@ object KafkaWorker {
 object ConsumerConfig {
 
   import scala.concurrent.duration._
+
   val loaded = ConfigFactory.load()
+
   def getTopicConf(topicName: String) = {
     if (loaded.hasPath(s"kafka.topic.$topicName"))
       loaded.getConfig(s"kafka.topic.$topicName")
@@ -41,7 +43,8 @@ object ConsumerConfig {
   def getTopicCommitInterval(topicName: String) = {
     Try(getTopicConf(topicName).getInt("commit.interval.seconds")).toOption.map(i => i seconds)
   }
-  def getTopicCommitAfterMessageCount(topicName: String) =  {
+
+  def getTopicCommitAfterMessageCount(topicName: String) = {
     Try(getTopicConf(topicName).getInt("commit.afterCount")).toOption
   }
 
@@ -53,7 +56,7 @@ object ConsumerConfig {
     Try(getTopicConf(topicName).getInt("streams")).toOption.getOrElse(2)
   }
 
-  lazy val groupPrefix= loaded.getString("kafka.group.prefix")
+  lazy val groupPrefix = loaded.getString("kafka.group.prefix")
 }
 
 //trait KafkaConsumerFactory
@@ -65,7 +68,7 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
 
   implicit val ec = context.system.dispatcher
   var executorByTopic = Map.empty[String, ActorRef]
-  var consumerByName = Map.empty[String, AkkaConsumer[_,_]]
+  var consumerByName = Map.empty[String, AkkaConsumer[_, _]]
   val zkConnect = ZooKeeperConfig.hosts
   val groupPrefix = ConsumerConfig.groupPrefix
 
@@ -77,7 +80,9 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
     val streams = ConsumerConfig.getTopicStreams(topic)
     val maxInFlightPerStream = ConsumerConfig.getTopicMaxInFlightPerStream(topic)
 
-   val props =  AkkaConsumerProps.forContext(
+    log.debug(s"Commit config: $commitConfig")
+
+    val props = AkkaConsumerProps.forContext(
       context = context,
       zkConnect = zkConnect,
       topic = topic,
@@ -95,7 +100,7 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
     )
     new AkkaConsumer(props)
   }
-  
+
   val kafkaMsgHandler: MessageAndMetadata[String, String] => String = { msg => msg.message()}
 
   override def preStart(): Unit = sendToMaster(RegisterWorkerOnCluster(self))
@@ -107,14 +112,19 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
       log.debug(s"Created actor $executor")
       executorByTopic = executorByTopic + ((topic, executor))
       val group = groupPrefix + "-" + topic
-      val newConsumer: AkkaConsumer[String, String] = consumer(executor, topic, groupPrefix + "-" + topic, topic )
-      consumerByName = consumerByName +((newConsumer.connector.path.name, newConsumer))
+      val newConsumer: AkkaConsumer[String, String] = consumer(executor, topic, groupPrefix + "-" + topic, topic)
+      consumerByName = consumerByName + ((newConsumer.connector.path.name, newConsumer))
       log.debug(s"Created consumer $executor")
       log.debug(s"executors: $executorByTopic")
       log.debug(s"consumers: $consumerByName")
       newConsumer.start() pipeTo sender()
 
-    case WorkingTopics => sender() ! Topics(executorByTopic.keys.toSet)
+    case WorkingTopics => {
+      log.debug(s"Working topics ${executorByTopic}")
+      log.debug(s"Consumer by name ${consumerByName}")
+      sender() ! Topics(executorByTopic.keys.toSet)
+
+    }
 
     case Work(topic) => log.warning(s"Something strange happened, this node is already working with $topic")
 
