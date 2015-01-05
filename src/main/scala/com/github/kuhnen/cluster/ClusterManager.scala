@@ -19,11 +19,17 @@ trait ClusterManager extends LazyLogging {
 
   val system: ActorSystem
 
-  def startMaster(port: Int, role: String = "master"): Unit = {
+  def startMaster(role: String = "master"): Unit = {
 
     val topicWatcherMaker: ActorBuilder = { context => context.actorOf(KafkaTopicWatcherActor.props())}
-    val coordinatorMaker: ActorBuilder = { context => context.actorOf(WorkersCoordinator.props())}
-    system.actorOf(ClusterSingletonManager.props(MasterActor.props(topicWatcherMaker, coordinatorMaker), "active", PoisonPill, Some(role)), "master")
+    val coordinatorMaker = {
+      (context: ActorRefFactory, optName: Option[String]) =>
+        optName.map(name => context.actorOf(WorkersCoordinator.props(), name = name))
+          .getOrElse(context.actorOf(WorkersCoordinator.props()))
+    }
+
+    system.actorOf(ClusterSingletonManager.props(
+      MasterActor.props(topicWatcherMaker, coordinatorMaker), "active", PoisonPill, Some(role)), "master")
 
   }
 

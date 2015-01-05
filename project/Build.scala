@@ -11,7 +11,7 @@ object ProcessorBuild extends Build {
     id = "root",
     base = file("."),
     settings = Defaults.coreDefaultSettings ++ SbtMultiJvm.multiJvmSettings ++ settings
-  ).enablePlugins(SbtOneLog)// configs (MultiJvm)
+  ).enablePlugins(SbtOneLog) configs (MultiJvm)
 
 
 override lazy val  settings = super.settings ++ Seq(
@@ -49,18 +49,6 @@ object Dependencies {
 
   import Version._
 
-
-  lazy val resolvers = Seq(
-    "spray repo" at "http://repo.spray.io",
-    "spray nightlies" at "http://nightlies.spray.io",
-    Resolver.sonatypeRepo("releases"),
-    "Kamon Repository" at "http://repo.kamon.io",
-    "Sonatype Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/",
-    "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
-    "Websudos releases" at "http://maven.websudos.co.uk/ext-release-local"
-  )
-
-
   lazy val libraryDependenciesCore = Seq(
     "com.typesafe.akka" %% "akka-actor" % akka,
     "com.typesafe.akka" %% "akka-slf4j" % akka,
@@ -73,28 +61,38 @@ object Dependencies {
     "org.json4s" %% "json4s-ext" % json,
     "io.kamon" %% "kamon-core" % kamon,
     "io.kamon" %% "kamon-spray" % kamon,
-    //"io.kamon" %% "kamon-newrelic" % kamon,
     "io.kamon" %% "kamon-system-metrics" % kamon,
     "io.kamon" %% "kamon-statsd" % kamon,
     "io.kamon" %% "kamon-log-reporter" % kamon,
+    //"io.kamon" %% "kamon-newrelic" % kamon,
     "com.sclasen" %% "akka-kafka" % "0.0.9-SNAPSHOT" % "compile" exclude("com.101tec", "zkclient") exclude("io.netty", "netty"),
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
     "ch.qos.logback" % "logback-classic" % "1.1.2",
     "com.github.nscala-time" %% "nscala-time" % "1.6.0",
     "com.typesafe" % "config" % "1.2.1",
     "org.aspectj" % "aspectjweaver" % "1.8.4",
-    "com.101tec"  % "zkclient" % "0.4",
+    "com.101tec"  % "zkclient" % "0.4" intransitive(),
     "org.fusesource" % "sigar" % "1.6.4" classifier("native") classifier("")
   )
 
   lazy val test = Seq(
-    "com.typesafe.akka" %% "akka-testkit" % akka ,//% "test",
+    "com.typesafe.akka" %% "akka-testkit" % akka,
     "com.typesafe.akka" %% "akka-multi-node-testkit" % akka,
     "io.spray" %% "spray-testkit" % spray % "test",
-    "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" exclude("org.scalatest", "scalatest_2.11"), //% "test",
-    "org.scalatest" %% "scalatest" % "2.2.2" // % "test",
-
+    "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" exclude("org.scalatest", "scalatest_2.11"),
+    "org.scalatest" %% "scalatest" % "2.2.2"
   )
+
+  lazy val resolvers = Seq(
+    "spray repo" at "http://repo.spray.io",
+    "spray nightlies" at "http://nightlies.spray.io",
+    Resolver.sonatypeRepo("releases"),
+    "Kamon Repository" at "http://repo.kamon.io",
+    "Sonatype Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/",
+    "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
+    "Websudos releases" at "http://maven.websudos.co.uk/ext-release-local"
+  )
+
 
 }
 

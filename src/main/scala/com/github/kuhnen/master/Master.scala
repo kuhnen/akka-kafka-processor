@@ -8,6 +8,7 @@ import akka.actor.SupervisorStrategy.{Escalate, Restart}
 import akka.actor._
 import akka.contrib.pattern.{ClusterReceptionistExtension, DistributedPubSubExtension}
 import akka.event.LoggingReceive
+import com.github.kuhnen.cluster.ClusterConfig
 import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
 import com.github.kuhnen.master.WorkersCoordinator.RegisterWorker
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
@@ -20,10 +21,10 @@ object MasterActor {
   type ActorBuilder = ActorRefFactory => ActorRef
 
   def props(topicWatcherMaker: ActorRefFactory => ActorRef,
-            coordinatorActorMaker: ActorRefFactory => ActorRef) = Props(classOf[MasterActor], topicWatcherMaker, coordinatorActorMaker)
+            coordinatorActorMaker: (ActorRefFactory, Option[String]) => ActorRef) = Props(classOf[MasterActor], topicWatcherMaker, coordinatorActorMaker)
 
-  val topicWatcherInterval = 10 seconds
-  val topicWatcherInitialDelay = 10 seconds
+  val topicWatcherInterval = ClusterConfig.watcherInterval
+  val topicWatcherInitialDelay = ClusterConfig.watcherInitialDelay
 
 }
 
@@ -38,7 +39,7 @@ object MasterWorkerProtocol {
 
 
 class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
-                  coordinatorActorMaker: ActorRefFactory => ActorRef) extends Actor with ActorLogging {
+                  coordinatorActorMaker: (ActorRefFactory, Option[String]) => ActorRef) extends Actor with ActorLogging {
 
   import com.github.kuhnen.master.MasterActor._
 
@@ -67,7 +68,7 @@ class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
     //topicWatcher = context.actorOf(topicsWatcher, name = "kafka-topic-watcher")
     topicWatcher = topicWatcherMaker(context)
     //coordinatorActor = context.actorOf(WorkersCoordinator.props(), name = "WorkersCoodinator")
-    coordinatorActor = coordinatorActorMaker(context)
+    coordinatorActor = coordinatorActorMaker(context, Option("coordinator"))
     topicsCancellable = context.system.scheduler.schedule(topicWatcherInitialDelay, topicWatcherInitialDelay, topicWatcher, KafkaTopicWatcherActor.GetTopics)
 
   }
@@ -80,6 +81,7 @@ class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
 
     case TopicsAvailable(topics) =>
       //topicsCancellable.cancel()
+      log.warning(s"TOPIC TOPICS TOPICS:  $topics")
       coordinatorActor ! TopicsAvailable(topics)
 
     case RegisterWorkerOnCluster(worker) =>

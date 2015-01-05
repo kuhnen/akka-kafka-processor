@@ -28,7 +28,7 @@ class MasterSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
 
   val topicWatcherMaker: ActorBuilder = { _: ActorRefFactory => topicWatcherProbe.ref}
 
-  val coordinatorMaker: ActorBuilder = { _: ActorRefFactory => coordinatorProbe.ref}
+  val coordinatorMaker = { (_: ActorRefFactory, _: Option[_]) => coordinatorProbe.ref}
 
   def createMaster() = system.actorOf(MasterActor.props(topicWatcherMaker, coordinatorMaker))
 

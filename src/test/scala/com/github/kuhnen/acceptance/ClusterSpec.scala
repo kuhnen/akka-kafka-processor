@@ -28,7 +28,7 @@ class ClusterSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
     cluster.startListener()
     Thread.sleep(1000)
 
-    cluster.startMaster(seedPort)
+    cluster.startMaster()
     Thread.sleep(1000)
 
     cluster.startWorker()
