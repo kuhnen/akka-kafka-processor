@@ -1,8 +1,8 @@
 package com.github.kuhnen.worker
 
 import akka.actor._
-import akka.contrib.pattern.ClusterClient.SendToAll
-import akka.event.LoggingReceive
+import akka.contrib.pattern.ClusterClient
+  import akka.event.LoggingReceive
 import akka.pattern.pipe
 import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
 import com.github.kuhnen.master.WorkersCoordinator.{Topics, Work, WorkingTopics}
@@ -103,7 +103,9 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
 
   val kafkaMsgHandler: MessageAndMetadata[String, String] => String = { msg => msg.message()}
 
-  override def preStart(): Unit = sendToMaster(RegisterWorkerOnCluster(self))
+  override def preStart(): Unit = {
+    sendToMaster(RegisterWorkerOnCluster(self))
+  }
 
   def receive = LoggingReceive {
 
@@ -132,7 +134,8 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
   }
 
   def sendToMaster(msg: Any): Unit = {
-    clusterClient ! SendToAll(singletonMasterPath, msg)
+    println(s"SENDING MESSAGE TO $singletonMasterPath")
+    clusterClient ! ClusterClient.SendToAll(singletonMasterPath, msg)
   }
 
 }

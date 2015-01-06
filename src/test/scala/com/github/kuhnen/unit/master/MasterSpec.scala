@@ -26,7 +26,7 @@ class MasterSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
 
   val coordinatorProbe = TestProbe()
 
-  val topicWatcherMaker: ActorBuilder = { _: ActorRefFactory => topicWatcherProbe.ref}
+  val topicWatcherMaker: ActorBuilder = { (_: ActorRefFactory, _: Option[_]) => topicWatcherProbe.ref}
 
   val coordinatorMaker = { (_: ActorRefFactory, _: Option[_]) => coordinatorProbe.ref}
 

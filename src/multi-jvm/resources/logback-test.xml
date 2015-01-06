@@ -14,8 +14,8 @@
         <appender-ref ref="STDOUT" />
     </logger>
 
-    <logger name="akka" additivity="false">
-        <level value="INFO"/>
+    <logger name="akka.contrib.pattern.ClusterReceptionist" additivity="false">
+        <level value="DEBUG"/>
         <appender-ref ref="STDOUT" />
     </logger> -->
 
@@ -30,7 +30,7 @@
     </logger>
 
     <logger name="com.sclasen.akka.kafka" additivity="false">
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="STDOUT" />
     </logger>
 

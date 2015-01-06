@@ -107,7 +107,7 @@ object WorkersCoordinator {
   //final case class WorkerRegisteredWorkers(workers: Set[ActorRef]) extends Data
   final case class Workers(availableWorkers: Set[ActorRef]) extends Data
 
-  object WorkingTopics
+  case object WorkingTopics
 
   def props() = Props[WorkersCoordinator]
 

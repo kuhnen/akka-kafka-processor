@@ -18,10 +18,10 @@ import scala.concurrent.duration._
 
 object MasterActor {
 
-  type ActorBuilder = ActorRefFactory => ActorRef
+  type ActorBuilder = (ActorRefFactory, Option[String]) => ActorRef
 
-  def props(topicWatcherMaker: ActorRefFactory => ActorRef,
-            coordinatorActorMaker: (ActorRefFactory, Option[String]) => ActorRef) = Props(classOf[MasterActor], topicWatcherMaker, coordinatorActorMaker)
+  def props(topicWatcherMaker: ActorBuilder,
+            coordinatorActorMaker: ActorBuilder) = Props(classOf[MasterActor], topicWatcherMaker, coordinatorActorMaker)
 
   val topicWatcherInterval = ClusterConfig.watcherInterval
   val topicWatcherInitialDelay = ClusterConfig.watcherInitialDelay
@@ -38,14 +38,15 @@ object MasterWorkerProtocol {
 }
 
 
-class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
+class MasterActor(topicWatcherMaker: (ActorRefFactory, Option[String]) => ActorRef,
                   coordinatorActorMaker: (ActorRefFactory, Option[String]) => ActorRef) extends Actor with ActorLogging {
 
   import com.github.kuhnen.master.MasterActor._
 
   implicit val ec = context.system.dispatcher
-  val mediator = DistributedPubSubExtension(context.system).mediator
-  ClusterReceptionistExtension(context.system).registerService(self)
+  //val mediator: ActorRef = DistributedPubSubExtension(context.system).mediator
+
+
 
   var topicWatcher: ActorRef = _
   var coordinatorActor: ActorRef = _
@@ -65,11 +66,16 @@ class MasterActor(topicWatcherMaker: ActorRefFactory => ActorRef,
 
   override def preStart(): Unit = {
 
+    println("_______________________________---")
+    println(self)
+    ClusterReceptionistExtension(context.system).registerService(self)
+
     //topicWatcher = context.actorOf(topicsWatcher, name = "kafka-topic-watcher")
-    topicWatcher = topicWatcherMaker(context)
+    topicWatcher = topicWatcherMaker(context, Option("topicWatcher"))
     //coordinatorActor = context.actorOf(WorkersCoordinator.props(), name = "WorkersCoodinator")
     coordinatorActor = coordinatorActorMaker(context, Option("coordinator"))
     topicsCancellable = context.system.scheduler.schedule(topicWatcherInitialDelay, topicWatcherInitialDelay, topicWatcher, KafkaTopicWatcherActor.GetTopics)
+
 
   }
 
