@@ -15,25 +15,32 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
   var availableTopics = Set.empty[String]
   var workers = Set.empty[ActorRef]
+  var topicsByWorkerState = Map.empty[ActorRef, Set[String]].withDefaultValue(Set.empty)
 
   override def receive = idle
+
+  def logCoordinatorState() = {
+    log.info(s"Topics to Work: $availableTopics")
+    val workersName = workers.map(_.path)
+    log.info(s"Workers available: $workersName ")
+  }
 
   def idle: Receive = LoggingReceive {
 
     case RegisterWorker(worker) => workers = workers + worker
 
-    case TopicsAvailable(topics) if topics.isEmpty =>
-      //TODO stop all workers, why should we have workers if there is nothing to do?
-      log.warning("No topics available to work")
+    case TopicsAvailable(topics) if topics.isEmpty => logCoordinatorState()
 
     case TopicsAvailable(topics) if workers.size == 0 =>
       log.warning("There is no workers registered")
+      logCoordinatorState()
 
     case TopicsAvailable(topics) =>
       availableTopics = topics
       val emptyTopicsByWorker = Map.empty[ActorRef, Set[String]].withDefaultValue(Set.empty)
       workers.foreach { _ ! WorkingTopics  }
       context.become(waitingForWorkersTopics(workers.size, emptyTopicsByWorker))
+      logCoordinatorState()
   }
 
   def waitingForWorkersTopics(remainingWorkers: Int, topicsByWorker: Map[ActorRef, Set[String]]): Receive = {
@@ -43,8 +50,7 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
       val updatedTopicsByWorker = updateTopicsByWorker(sender(), topics, topicsByWorker)
       val workersTopics = updatedTopicsByWorker.values.flatten.toSet
       val topicsToSend = availableTopics -- workersTopics
-      log.debug(s"availableTopics: $availableTopics")
-      log.debug(s"Topics to send to workers: $topicsToSend")
+      log.info(s"New topics to send to workers: $topicsToSend")
       delegateTopicsToWorkers(topicsToSend, updatedTopicsByWorker)
 
     case Topics(topics) =>
@@ -56,14 +62,15 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
   def updateTopicsByWorker(worker: ActorRef, topics: Set[String], topicsByWorker: Map[ActorRef, Set[String]]) = {
     val workerTopics = topicsByWorker(worker) ++ topics
-    topicsByWorker + ((worker, workerTopics))
+    topicsByWorkerState =  topicsByWorker + ((worker, workerTopics))
+    topicsByWorkerState
 
   }
 
   //TODO do load balancing
   def delegateTopicsToWorkers(topics: Set[String], topicsByWorker: Map[ActorRef, Set[String]]) = {
     val workersOrdered = topicsByWorker.toList.sortBy { case (_, topics) => topics.size}.map { case (actor, _) => actor}
-    log.debug(s"Delegating topics to workers: $workersOrdered")
+    log.info(s"Delegating topics to workers: $workersOrdered")
     val workersTopics = topics zip workersOrdered
     workersTopics.foreach { case (topic, actor) => actor ! Work(topic)}
     //Wait for ok from workers???

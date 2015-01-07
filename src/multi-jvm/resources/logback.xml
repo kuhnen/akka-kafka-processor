@@ -2,19 +2,12 @@
 <configuration scan="true" scanPeriod="30 seconds">
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-       <!-- <param name="Target" value="System.out"/> -->
+        <param name="Target" value="System.out"/>
         <encoder>
             <!--<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>-->
             <pattern>%X{akkaTimestamp} %highlight(%-5level) %logger{5} %highlight(%X{akkaSource}) - %msg%n</pattern>
         </encoder>
     </appender>
-
-   <!-- <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-
-            <pattern>%date{HH:mm:ss} %-5level %logger{0} {%class %method} - %msg%n</pattern>
-        </encoder>
-    </appender> -->
 
     <logger name="com.github.kuhnen" additivity="false">
         <level value="DEBUG"/>
@@ -22,7 +15,7 @@
     </logger>
 
     <logger name="akka.contrib.pattern.ClusterReceptionist" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="STDOUT" />
     </logger> -->
 
@@ -70,9 +63,8 @@
 
     </appender> -->
 
-    <root level="info">
+    <root level="WARN">
         <appender-ref ref="STDOUT"/>
-
     </root>
 
 </configuration>

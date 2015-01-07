@@ -6,7 +6,7 @@ package com.github.kuhnen.master
 
 import akka.actor.SupervisorStrategy.{Escalate, Restart}
 import akka.actor._
-import akka.contrib.pattern.{ClusterReceptionistExtension, DistributedPubSubExtension}
+import akka.contrib.pattern.ClusterReceptionistExtension
 import akka.event.LoggingReceive
 import com.github.kuhnen.cluster.ClusterConfig
 import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
@@ -46,8 +46,6 @@ class MasterActor(topicWatcherMaker: (ActorRefFactory, Option[String]) => ActorR
   implicit val ec = context.system.dispatcher
   //val mediator: ActorRef = DistributedPubSubExtension(context.system).mediator
 
-
-
   var topicWatcher: ActorRef = _
   var coordinatorActor: ActorRef = _
   var topicsCancellable: Cancellable = _
@@ -66,10 +64,7 @@ class MasterActor(topicWatcherMaker: (ActorRefFactory, Option[String]) => ActorR
 
   override def preStart(): Unit = {
 
-    println("_______________________________---")
-    println(self)
     ClusterReceptionistExtension(context.system).registerService(self)
-
     //topicWatcher = context.actorOf(topicsWatcher, name = "kafka-topic-watcher")
     topicWatcher = topicWatcherMaker(context, Option("topicWatcher"))
     //coordinatorActor = context.actorOf(WorkersCoordinator.props(), name = "WorkersCoodinator")
@@ -85,16 +80,10 @@ class MasterActor(topicWatcherMaker: (ActorRefFactory, Option[String]) => ActorR
 
   def receive = LoggingReceive {
 
-    case TopicsAvailable(topics) =>
-      //topicsCancellable.cancel()
-      log.warning(s"TOPIC TOPICS TOPICS:  $topics")
-      coordinatorActor ! TopicsAvailable(topics)
+    //TODO,  the topic watcher  should be a child of the coordinator
+    case TopicsAvailable(topics) => coordinatorActor ! TopicsAvailable(topics)
 
-    case RegisterWorkerOnCluster(worker) =>
-      //workers = workers + worker
-      log.info(s"Registering worker $worker")
-      coordinatorActor ! RegisterWorker(worker)
-
+    case RegisterWorkerOnCluster(worker) => coordinatorActor ! RegisterWorker(worker)
 
   }
 

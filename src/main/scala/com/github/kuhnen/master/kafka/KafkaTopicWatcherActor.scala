@@ -6,6 +6,10 @@ import com.typesafe.config.ConfigFactory
 import kafka.utils.{ZKStringSerializer, ZkUtils}
 import org.I0Itec.zkclient.ZkClient
 
+/**
+ * Created by kuhnen on 12/16/14.
+ */
+
 object ZooKeeperConfig {
 
   val zkConf = ConfigFactory.load().getConfig("kafka.zookeeper")
@@ -15,11 +19,6 @@ object ZooKeeperConfig {
 
 }
 
-//trait  KafkaTopicWatcher extends TopicWatcher[ZkClient] {}
-
-/**
- * Created by kuhnen on 12/16/14.
- */
 
 class KafkaTopicWatcherActor extends TopicWatcher[ZkClient] with Actor with ActorLogging {
 
@@ -59,8 +58,6 @@ object KafkaTopicWatcherActor {
 
 
 object TopicWatcher {
-
-  //type Topics = Set[String]
 
 }
 

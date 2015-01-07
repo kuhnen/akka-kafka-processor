@@ -58,8 +58,6 @@ trait ClusterManager extends LazyLogging {
       context.actorOf(Props[PlainTextTopicActor], name)
     }
 
-    println(s"STARTING CLuster Client with $initialContacts ")
-    println(initialContacts)
     val clusterClient = system.actorOf(ClusterClient.props(initialContacts), "clusterClient")
     val worker = system.actorOf(KafkaWorker.props(clusterClient, executorMaker), "worker")
     //clusterClient ! RegisterWorkerOnCluster(worker)
