@@ -22,7 +22,7 @@
     </logger>
 
     <logger name="akka.contrib.pattern.ClusterReceptionist" additivity="false">
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="STDOUT" />
     </logger> -->
 

@@ -12,6 +12,7 @@ import akka.remote.testkit.MultiNodeConfig
 import com.github.kuhnen.cluster.{ClusterConfig, ClusterManager}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import scala.concurrent.duration._
 
 
 object MultiNodeSampleConfig extends MultiNodeConfig {
@@ -108,14 +109,16 @@ with STMultiNodeSpec with ImplicitSender with LazyLogging {
   class TestClusterManager(implicit override val system: ActorSystem) extends ClusterManager
 
   implicit def roleNameToAddress(role: RoleName): Address = testConductor.getAddressFor(role).await
-  implicit val sys: ActorSystem = system
+  implicit var sys: ActorSystem = system
 
   val managerT = new TestClusterManager
 
   runOn(node1) {
+
     log.info(s"Starting node $node1")
     //val manager = new TestClusterManager()
     managerT.startListener()
+    enterBarrier("deployed")
   }
 
   Thread.sleep(5000)
@@ -124,33 +127,61 @@ with STMultiNodeSpec with ImplicitSender with LazyLogging {
   Thread.sleep(5000)
   runOn(node3) { cluster join node1}
   Thread.sleep(5000)
+
+  runOn(node2) {
+
+    log.info(s"Starting master and worker on node $node2")
+    //val manager = new TestClusterManager
+    managerT.startMaster()
+    managerT.startWorker()
+    enterBarrier("deployed")
+  }
+
+  Thread.sleep(5000)
+
   runOn(node3) {
+    enterBarrier("deployed")
     log.info(s"Starting master and worker on node $node3")
     //val manager = new TestClusterManager()
     managerT.startMaster()
-    Thread.sleep(5000)
     managerT.startWorker()
   }
+
+
 
   //This is done just to show that the oldest node on the cluster take over the master
   // not the oldest master
   //TODO REGISTER SHOULD CONFIRM
+
+  enterBarrier("Wait")
   Thread.sleep(5000)
+  log.info("Waiting some more time so node 2 can leave")
+  Thread.sleep(5000)
+
   runOn(node2) {
-    log.info(s"Starting master and worker on node $node2")
-    //val manager = new TestClusterManager
-    managerT.startMaster()
+    cluster.leave(node2)
     Thread.sleep(5000)
-    managerT.startWorker()
+//    cluster.down(node2)
+    Thread.sleep(5000)
+    system.shutdown()
+    system.awaitTermination(10 seconds)
+
   }
 
   Thread.sleep(15000)
 
-  runOn(node2, node3) {
-   // managerT.startWorker()
+  runOn(node2) {
+    sys = startNewSystem()
 
+    cluster.join(node1)
+    val manager = new ClusterManager{
+      override val system: ActorSystem = sys
+    }
+    manager.startMaster()
+    manager.startWorker()
   }
 
+  Thread.sleep(15000)
   //Let's send some information to kafka
   runOn(node1) {
     log.info("Sending topics to kafka")

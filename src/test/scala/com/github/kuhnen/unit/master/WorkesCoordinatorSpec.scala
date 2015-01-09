@@ -2,6 +2,7 @@ package com.github.kuhnen.unit.master
 
 import akka.actor.ActorSystem
 import akka.testkit.{EventFilter, TestActorRef, TestProbe}
+import com.github.kuhnen.master.MasterWorkerProtocol.Register
 import com.github.kuhnen.master.WorkersCoordinator
 import com.github.kuhnen.master.WorkersCoordinator.{Topics, Work, WorkingTopics}
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
@@ -11,20 +12,16 @@ import scala.concurrent.duration._
 /**
  * Created by kuhnen on 12/26/14.
  */
-
-
 class WorkesCoordinatorSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
 
   def this() = this(ActorSystem("CoordinatorSpec", LocalConf.conf))
-
-  import com.github.kuhnen.master.WorkersCoordinator.RegisterWorker
 
   def coordinatorRef(name: String):TestActorRef[WorkersCoordinator] = TestActorRef[WorkersCoordinator](name = name)
 
   def withCoordinatorRegisteredWorker(body: (TestActorRef[WorkersCoordinator], TestProbe) => Unit) = {
     val workProbe: TestProbe = TestProbe()
     val coordinatorRef: TestActorRef[WorkersCoordinator] = TestActorRef[WorkersCoordinator]
-    coordinatorRef ! RegisterWorker(workProbe.ref)
+    coordinatorRef ! Register(workProbe.ref)
     body(coordinatorRef, workProbe)
   }
 
@@ -32,8 +29,8 @@ class WorkesCoordinatorSpec(_system: ActorSystem) extends CommonActorSpec(_syste
     val workProbe: TestProbe = TestProbe()
     val workProbe2: TestProbe = TestProbe()
     val coordinatorRef: TestActorRef[WorkersCoordinator] = TestActorRef[WorkersCoordinator]
-    coordinatorRef ! RegisterWorker(workProbe.ref)
-    coordinatorRef ! RegisterWorker(workProbe2.ref)
+    coordinatorRef ! Register(workProbe.ref)
+    coordinatorRef ! Register(workProbe2.ref)
     body(coordinatorRef, workProbe, workProbe2)
   }
 
@@ -56,9 +53,9 @@ class WorkesCoordinatorSpec(_system: ActorSystem) extends CommonActorSpec(_syste
     val workProbe: TestProbe = TestProbe()
     val coordinatorRef: TestActorRef[WorkersCoordinator] = TestActorRef[WorkersCoordinator]
     val coordinator = coordinatorRef.underlyingActor
-    coordinatorRef ! RegisterWorker(workProbe.ref)
+    coordinatorRef ! Register(workProbe.ref)
     coordinator.workers should have size 1
-    coordinatorRef ! RegisterWorker(workProbe.ref)
+    coordinatorRef ! Register(workProbe.ref)
     coordinator.workers should have size 1
   }
 
@@ -109,7 +106,7 @@ class WorkesCoordinatorSpec(_system: ActorSystem) extends CommonActorSpec(_syste
       val coordinator = coordinatorRef.underlyingActor
       coordinatorRef ! TopicsAvailable(Set("topic1", "topic2"))
       val probe2 = TestProbe()
-      coordinatorRef ! RegisterWorker(probe2.ref)
+      coordinatorRef ! Register(probe2.ref)
       coordinator.workers should have size 1
       probe.expectMsg(WorkingTopics)
       probe.reply(Topics(Set("topic1")))

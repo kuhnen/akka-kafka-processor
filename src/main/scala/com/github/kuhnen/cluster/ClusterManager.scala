@@ -1,6 +1,7 @@
 package com.github.kuhnen.cluster
 
 import akka.actor._
+import akka.cluster.Cluster
 import akka.contrib.pattern.{ClusterClient, ClusterSingletonManager}
 import akka.japi.Util._
 import com.github.kuhnen.master.MasterActor._
@@ -10,41 +11,33 @@ import com.github.kuhnen.master.{MasterActor, WorkersCoordinator}
 import akka.japi.Util.immutableSeq
 import com.github.kuhnen.worker.KafkaWorker
 import com.github.kuhnen.worker.executor.PlainTextTopicActor
+import com.typesafe.config.{ConfigFactory, Config}
 import com.typesafe.scalalogging.LazyLogging
 
 /**
  * Created by kuhnen on 1/3/15.
  */
 
+class ClusterManagerImpl(implicit val system: ActorSystem) extends ClusterManager
+
 trait ClusterManager extends LazyLogging {
 
+  import ClusterConfig._
+
   val system: ActorSystem
+  lazy val cluster = Cluster
 
-  def startMaster(role: String = "master"): Unit = {
-
-    val topicWatcherMaker: ActorBuilder = { (context, optName) =>
-      optName.map(name => context.actorOf(KafkaTopicWatcherActor.props(), name = name))
-        .getOrElse(context.actorOf(KafkaTopicWatcherActor.props()))
-    }
-
-    val coordinatorMaker = {
-      (context: ActorRefFactory, optName: Option[String]) =>
-        optName.map(name => context.actorOf(WorkersCoordinator.props(), name = name))
-          .getOrElse(context.actorOf(WorkersCoordinator.props()))
-    }
-
+  def startMaster(role: String = "master"): ActorRef = {
     system.actorOf(ClusterSingletonManager.props(
-      MasterActor.props(topicWatcherMaker, coordinatorMaker), "active", PoisonPill, Some(role), maxHandOverRetries = 6), "master")
-
+      singletonProps = MasterActor.props(topicWatcherMaker, coordinatorMaker),
+      singletonName = "active",
+      terminationMessage = PoisonPill,
+      role = Some(role),
+      maxHandOverRetries = 6),
+      "master")
   }
 
-  def startListener(port: Int = 2551, role: String = "listener") = {
-
-    system.actorOf(ClusterListener.props(), name = "listener")
-
-  }
-
-  def startWorker() = {
+  def startWorker: ActorRef = {
 
     val conf = ClusterConfig.config.getConfig("processor")
     val initialContacts = immutableSeq(conf.getStringList("contact-points")).map {
@@ -59,10 +52,21 @@ trait ClusterManager extends LazyLogging {
     }
 
     val clusterClient = system.actorOf(ClusterClient.props(initialContacts), "clusterClient")
-    val worker = system.actorOf(KafkaWorker.props(clusterClient, executorMaker), "worker")
-    //clusterClient ! RegisterWorkerOnCluster(worker)
-    //system.actorOf(Worker.props(clusterClient), "worker")
+    system.actorOf(KafkaWorker.props(clusterClient, executorMaker), "worker")
 
   }
+
+  val topicWatcherMaker: ActorBuilder = { (context, optName) =>
+    optName.map(name => context.actorOf(KafkaTopicWatcherActor.props(), name = name))
+      .getOrElse(context.actorOf(KafkaTopicWatcherActor.props()))
+  }
+
+  val coordinatorMaker = {
+    (context: ActorRefFactory, optName: Option[String]) =>
+      optName.map(name => context.actorOf(WorkersCoordinator.props(), name = name))
+        .getOrElse(context.actorOf(WorkersCoordinator.props()))
+  }
+
+  def startListener = system.actorOf(ClusterListener.props(), name = "listener")
 
 }

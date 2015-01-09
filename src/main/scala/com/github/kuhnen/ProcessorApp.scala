@@ -5,31 +5,39 @@ package com.github.kuhnen
  */
 
 import akka.actor._
-import akka.contrib.pattern.{ClusterClient, ClusterSingletonManager}
-import akka.japi.Util.immutableSeq
-import com.github.kuhnen.cluster.ClusterConfig
-import com.github.kuhnen.master.MasterActor.ActorBuilder
-import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
-import com.github.kuhnen.master.{WorkersCoordinator, MasterActor}
+import com.github.kuhnen.cluster.ClusterManager
 import com.typesafe.config.ConfigFactory
-
-object StartUp {
-
-  import ClusterConfig._
-
-}
+import org.json4s.DefaultFormats
 
 object ProcessorApp {
-  //extends App {
 
-  import com.github.kuhnen.StartUp._
+  import com.github.kuhnen.cluster.ClusterConfig._
 
   def main(args: Array[String]) {
- //    implicit val system = ActorSystem(clusterName)
 
-   // val clusterListener = system.actorOf(Props[ClusterListener], name = "clusterListener")
+    args foreach println
 
-  //  sys.addShutdownHook(system.shutdown())
+    implicit val formats = DefaultFormats
+    val roles = sys.env.get("ROLES")
+
+    val conf = {
+      if (roles.isDefined)
+        ConfigFactory.parseString(s"akka.cluster.roles=$roles").withFallback(config)
+      else
+        config
+    }
+
+    implicit val _system = ActorSystem(clusterName, conf)
+
+    val clusterManager = new ClusterManager {
+      override val system: ActorSystem = _system
+    }
+
+    import clusterManager._
+    startListener
+    startMaster()
+    startWorker
+    sys.addShutdownHook(_system.shutdown())
 
 
     //    startupSharedJournal(system, startStore = (port == 2551), path =

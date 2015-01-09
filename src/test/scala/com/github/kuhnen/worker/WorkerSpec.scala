@@ -6,8 +6,7 @@ import akka.testkit.TestProbe
 import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
 import com.github.kuhnen.master.WorkersCoordinator.Work
 import com.github.kuhnen.{CommonActorSpec, CommonSpecs, LocalConf}
-import com.sclasen.akka.kafka.{StreamFSM, AkkaConsumer}
-import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
+import com.sclasen.akka.kafka.StreamFSM
 
 import scala.concurrent.duration._
 
@@ -19,6 +18,7 @@ import scala.concurrent.duration._
 class WorkerSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
 
   import com.github.kuhnen.util.kafka.KafkaUtil._
+
   def this() = this(ActorSystem("WorkerSpec", LocalConf.conf))
 
 
@@ -52,7 +52,7 @@ class WorkerSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
     sendMessages(topic)
     worker ! Work(topic)
     expectMsg(())
-    for (_ <- 1 to messages){
+    for (_ <- 1 to messages) {
       probe.expectMsgPF(5 seconds) {
         case _ => assert(true)
       }
@@ -65,7 +65,7 @@ class WorkerSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
 class ConsumerConfigSpec extends CommonSpecs {
 
 
-  import com.github.kuhnen.worker.ConsumerConfig._
+  import com.github.kuhnen.worker.kafka.ConsumerConfig._
 
   it should "get the topic commit interval configuration or None" in {
     getTopicCommitInterval("view") shouldBe Some(10 seconds)

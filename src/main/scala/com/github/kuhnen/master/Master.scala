@@ -9,8 +9,7 @@ import akka.actor._
 import akka.contrib.pattern.ClusterReceptionistExtension
 import akka.event.LoggingReceive
 import com.github.kuhnen.cluster.ClusterConfig
-import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
-import com.github.kuhnen.master.WorkersCoordinator.RegisterWorker
+import com.github.kuhnen.master.MasterWorkerProtocol.{Register, RegisterWorkerOnCluster, Registered, Unregister}
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
 
@@ -30,7 +29,13 @@ object MasterActor {
 
 object MasterWorkerProtocol {
 
-  case class RegisterWorkerOnCluster(work: ActorRef)
+  final case class RegisterWorkerOnCluster(work: ActorRef)
+
+  final case class Register(worker: ActorRef)
+
+  final case class Unregister(worker: ActorRef)
+
+  case object Registered
 
   //TODO
   case class Subscribe(worker: ActorRef, topic: String)
@@ -78,12 +83,20 @@ class MasterActor(topicWatcherMaker: (ActorRefFactory, Option[String]) => ActorR
     topicsCancellable.cancel()
   }
 
+
   def receive = LoggingReceive {
+
+    case RegisterWorkerOnCluster(worker) =>
+      //We assume that the coordinator is always local with the master
+      coordinatorActor ! Register(worker)
+      context.watch(worker)
+      sender() ! Registered
 
     //TODO,  the topic watcher  should be a child of the coordinator
     case TopicsAvailable(topics) => coordinatorActor ! TopicsAvailable(topics)
 
-    case RegisterWorkerOnCluster(worker) => coordinatorActor ! RegisterWorker(worker)
+    case Terminated(worker) => Unregister(worker)
+
 
   }
 

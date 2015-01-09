@@ -2,7 +2,8 @@ package com.github.kuhnen.master
 
 import akka.actor._
 import akka.event.LoggingReceive
-import com.github.kuhnen.master.WorkersCoordinator.{RegisterWorker, Topics, Work, WorkingTopics}
+import com.github.kuhnen.master.MasterWorkerProtocol.{Register, Unregister}
+import com.github.kuhnen.master.WorkersCoordinator.{Topics, Work, WorkingTopics}
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
 
 
@@ -27,7 +28,10 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
   def idle: Receive = LoggingReceive {
 
-    case RegisterWorker(worker) => workers = workers + worker
+    case Register(worker) => workers = workers + worker
+    case Unregister(worker) =>
+      workers = workers - worker
+      topicsByWorkerState = topicsByWorkerState - worker
 
     case TopicsAvailable(topics) if topics.isEmpty => logCoordinatorState()
 
@@ -37,11 +41,14 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
     case TopicsAvailable(topics) =>
       availableTopics = topics
-      val emptyTopicsByWorker = Map.empty[ActorRef, Set[String]].withDefaultValue(Set.empty)
-      workers.foreach { _ ! WorkingTopics  }
+      askAboutWork()
       context.become(waitingForWorkersTopics(workers.size, emptyTopicsByWorker))
       logCoordinatorState()
   }
+
+  def askAboutWork(): Unit = workers.foreach(_ ! WorkingTopics)
+
+  def emptyTopicsByWorker = Map.empty[ActorRef, Set[String]].withDefaultValue(Set.empty)
 
   def waitingForWorkersTopics(remainingWorkers: Int, topicsByWorker: Map[ActorRef, Set[String]]): Receive = {
 
@@ -57,12 +64,14 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
       val updatedTopicsByWorker = updateTopicsByWorker(sender(), topics, topicsByWorker)
       context.become(waitingForWorkersTopics(remainingWorkers - 1, updatedTopicsByWorker))
 
-    case msg: RegisterWorker => stash()
+    case msg: Register => stash()
+    case msg: Unregister => stash()
+
   }
 
   def updateTopicsByWorker(worker: ActorRef, topics: Set[String], topicsByWorker: Map[ActorRef, Set[String]]) = {
     val workerTopics = topicsByWorker(worker) ++ topics
-    topicsByWorkerState =  topicsByWorker + ((worker, workerTopics))
+    topicsByWorkerState = topicsByWorker + ((worker, workerTopics))
     topicsByWorkerState
 
   }
@@ -70,9 +79,11 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
   //TODO do load balancing
   def delegateTopicsToWorkers(topics: Set[String], topicsByWorker: Map[ActorRef, Set[String]]) = {
     val workersOrdered = topicsByWorker.toList.sortBy { case (_, topics) => topics.size}.map { case (actor, _) => actor}
-    log.info(s"Delegating topics to workers: $workersOrdered")
     val workersTopics = topics zip workersOrdered
-    workersTopics.foreach { case (topic, actor) => actor ! Work(topic)}
+    workersTopics.foreach { case (topic, actor) =>
+      log.debug(s"Sending topic $topic to $actor")
+      actor ! Work(topic)
+    }
     //Wait for ok from workers???
     unstashAll()
     context.become(idle)
@@ -90,7 +101,7 @@ object WorkersCoordinator {
   }
 
   //EventReceived
-  final case class RegisterWorker(worker: ActorRef)
+
 
   final case class Work(topic: String)
 

@@ -2,14 +2,13 @@ package com.github.kuhnen.unit.master
 
 import akka.actor.{ActorRefFactory, ActorSystem}
 import akka.testkit.TestProbe
+import com.github.kuhnen.CommonActorSpec
 import com.github.kuhnen.cluster.ClusterConfig
 import com.github.kuhnen.master.MasterActor
 import com.github.kuhnen.master.MasterActor.ActorBuilder
-import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
-import com.github.kuhnen.master.WorkersCoordinator.RegisterWorker
+import com.github.kuhnen.master.MasterWorkerProtocol.{Register, RegisterWorkerOnCluster}
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
-import com.github.kuhnen.CommonActorSpec
 
 import scala.concurrent.duration._
 
@@ -46,7 +45,7 @@ class MasterSpec(_system: ActorSystem) extends CommonActorSpec(_system) {
     val master = createMaster()
     val workerProbe = TestProbe()
     master ! RegisterWorkerOnCluster(workerProbe.ref)
-    coordinatorProbe.expectMsg(RegisterWorker(workerProbe.ref))
+    coordinatorProbe.expectMsg(Register(workerProbe.ref))
   }
 
   ignore should "supervise the topic watcher child" in {

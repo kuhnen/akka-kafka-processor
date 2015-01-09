@@ -2,17 +2,15 @@ package com.github.kuhnen.worker
 
 import akka.actor._
 import akka.contrib.pattern.ClusterClient
-  import akka.event.LoggingReceive
+import akka.event.LoggingReceive
 import akka.pattern.pipe
-import com.github.kuhnen.master.MasterWorkerProtocol.RegisterWorkerOnCluster
+import com.github.kuhnen.master.MasterWorkerProtocol.{RegisterWorkerOnCluster, Registered}
 import com.github.kuhnen.master.WorkersCoordinator.{Topics, Work, WorkingTopics}
-import com.github.kuhnen.master.kafka.ZooKeeperConfig
-import com.sclasen.akka.kafka.{AkkaConsumer, AkkaConsumerProps, CommitConfig}
+import com.github.kuhnen.worker.kafka.{Consumer, ConsumerConfig}
+import com.sclasen.akka.kafka.AkkaConsumer
 import com.typesafe.config.ConfigFactory
-import kafka.message.MessageAndMetadata
-import kafka.serializer.StringDecoder
 
-import scala.util.Try
+import scala.concurrent.duration._
 
 /**
  * Created by kuhnen on 12/17/14.
@@ -28,36 +26,6 @@ object KafkaWorker {
 
 }
 
-object ConsumerConfig {
-
-  import scala.concurrent.duration._
-
-  val loaded = ConfigFactory.load()
-
-  def getTopicConf(topicName: String) = {
-    if (loaded.hasPath(s"kafka.topic.$topicName"))
-      loaded.getConfig(s"kafka.topic.$topicName")
-    else loaded.getConfig(s"kafka.topic.default")
-  }
-
-  def getTopicCommitInterval(topicName: String) = {
-    Try(getTopicConf(topicName).getInt("commit.interval.seconds")).toOption.map(i => i seconds)
-  }
-
-  def getTopicCommitAfterMessageCount(topicName: String) = {
-    Try(getTopicConf(topicName).getInt("commit.afterCount")).toOption
-  }
-
-  def getTopicMaxInFlightPerStream(topicName: String) = {
-    Try(getTopicConf(topicName).getInt("maxInFlightPerStream")).toOption.getOrElse(64)
-  }
-
-  def getTopicStreams(topicName: String) = {
-    Try(getTopicConf(topicName).getInt("streams")).toOption.getOrElse(2)
-  }
-
-  lazy val groupPrefix = loaded.getString("kafka.group.prefix")
-}
 
 //trait KafkaConsumerFactory
 //This actor is very simples, it only constructs a new AkkaKafkaConsumer, and the receives for the consumer
@@ -69,52 +37,28 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
   implicit val ec = context.system.dispatcher
   var executorByTopic = Map.empty[String, ActorRef]
   var consumerByName = Map.empty[String, AkkaConsumer[_, _]]
-  val zkConnect = ZooKeeperConfig.hosts
   val groupPrefix = ConsumerConfig.groupPrefix
+  //It should be on preStart?
+  val register = context.system.scheduler.schedule(10 seconds, 5 seconds) { sendToMaster(RegisterWorkerOnCluster(self)) }
 
-  def consumer(msgReceiver: ActorRef, topic: String, group: String, name: String) = {
-    val commitConfig = CommitConfig(
-      ConsumerConfig.getTopicCommitInterval(topic),
-      ConsumerConfig.getTopicCommitAfterMessageCount(topic)
-    )
-    val streams = ConsumerConfig.getTopicStreams(topic)
-    val maxInFlightPerStream = ConsumerConfig.getTopicMaxInFlightPerStream(topic)
+  def receive =  registering
 
-    log.debug(s"Commit config: $commitConfig")
-
-    val props = AkkaConsumerProps.forContext(
-      context = context,
-      zkConnect = zkConnect,
-      topic = topic,
-      group = group,
-      streams = streams, //one per partition
-      keyDecoder = new StringDecoder(),
-      msgDecoder = new StringDecoder(),
-      receiver = msgReceiver,
-      msgHandler = kafkaMsgHandler,
-      connectorActorName = Option(name),
-      maxInFlightPerStream = maxInFlightPerStream,
-      commitConfig = commitConfig
-      //100 seconds
-
-    )
-    new AkkaConsumer(props)
+  def registering: Receive = {
+    case Registered =>
+      //TODO cancel registering  (NOT SO SIMPLE)  read the ticket
+      //log.info(s"$self was successfully registered on $sender")
+  //  register.cancel()
+      context.become(registered)
   }
 
-  val kafkaMsgHandler: MessageAndMetadata[String, String] => String = { msg => msg.message()}
-
-  override def preStart(): Unit = {
-    sendToMaster(RegisterWorkerOnCluster(self))
-  }
-
-  def receive = LoggingReceive {
+  def registered = LoggingReceive {
 
     case Work(topic) if !executorByTopic.keys.toSet.contains(topic) =>
       val executor = msgReceiverMaker(context, topic)
       log.debug(s"Created actor $executor")
       executorByTopic = executorByTopic + ((topic, executor))
       val group = groupPrefix + "-" + topic
-      val newConsumer: AkkaConsumer[String, String] = consumer(executor, topic, groupPrefix + "-" + topic, topic)
+      val newConsumer: AkkaConsumer[String, String] = Consumer(executor, topic, groupPrefix + "-" + topic, topic)(context)
       consumerByName = consumerByName + ((newConsumer.connector.path.name, newConsumer))
       log.debug(s"Created consumer $executor")
       log.debug(s"executors: $executorByTopic")
@@ -128,15 +72,11 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
 
     }
 
-    case Work(topic) => log.warning(s"Something strange happened, this node is already working with $topic")
-
+    case Work(topic) => log.error(s"Something strange happened, this node is already working with $topic")
 
   }
 
-  def sendToMaster(msg: Any): Unit = {
-    println(s"SENDING MESSAGE TO $singletonMasterPath")
-    clusterClient ! ClusterClient.SendToAll(singletonMasterPath, msg)
-  }
+  def sendToMaster(msg: Any): Unit = clusterClient ! ClusterClient.SendToAll(singletonMasterPath, msg)
 
 }
 

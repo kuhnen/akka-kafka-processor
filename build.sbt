@@ -10,7 +10,7 @@ maintainer := "Andre Kuhnen <kuhnenm@gmail.com>"
 
 dockerExposedPorts in Docker := Seq(1600)
 
-dockerEntrypoint in Docker := Seq("sh", "-c", "CLUSTER_IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'` bin/akka-kafka-processor $*")
+  dockerEntrypoint in Docker := Seq("sh", "-c", "CLUSTER_IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'` bin/akka-kafka-processor $*")
 
 dockerRepository := Some("kuhnen")
 
@@ -37,7 +37,7 @@ enablePlugins(JavaAppPackaging)
 
 javaOptions in run := "-Djava.library.path=libsigar-amd64-linux-1.6.4.so" :: Nil
 
-
 initialCommands :=
   """
-    |import com.typesafe.config.ConfigFactory""".stripMargin
+    |import com.typesafe.config.ConfigFactory
+  """.stripMargin

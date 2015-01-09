@@ -1,3 +1,4 @@
+import com.typesafe.sbt.packager.docker.DockerPlugin
 import sbt.Keys._
 import sbt._
 import com.zavakid.sbt._
@@ -11,7 +12,7 @@ object ProcessorBuild extends Build {
     id = "root",
     base = file("."),
     settings = Defaults.coreDefaultSettings ++ SbtMultiJvm.multiJvmSettings ++ settings
-  ).enablePlugins(SbtOneLog) configs (MultiJvm)
+  ).enablePlugins(SbtOneLog, DockerPlugin) configs (MultiJvm)
 
 
 override lazy val  settings = super.settings ++ Seq(
