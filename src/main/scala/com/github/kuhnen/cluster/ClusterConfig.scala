@@ -12,6 +12,8 @@ object ClusterConfig {
   import ConfigFactory._
 
   val config = load()
+  val alligatorConf = config.getConfig("processor")
+
   //val akkaConf = load("akka")
   //val kafkaConf = load("kafka")
   val clusterName = config.getString("processor.cluster.name")

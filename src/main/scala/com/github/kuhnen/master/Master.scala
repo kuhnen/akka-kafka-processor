@@ -4,7 +4,7 @@ package com.github.kuhnen.master
  * Created by kuhnen on 12/17/14.
  */
 
-import akka.actor.SupervisorStrategy.{Escalate, Restart}
+import akka.actor.SupervisorStrategy.{Stop, Escalate, Restart}
 import akka.actor._
 import akka.contrib.pattern.ClusterReceptionistExtension
 import akka.event.LoggingReceive
@@ -55,13 +55,16 @@ class MasterActor(topicWatcherMaker: (ActorRefFactory, Option[String]) => ActorR
   var coordinatorActor: ActorRef = _
   var topicsCancellable: Cancellable = _
 
+  //TODO  should be able to recover if zookeeper is out
   override val supervisorStrategy = OneForOneStrategy(
     maxNrOfRetries = 1,
     withinTimeRange = 10 seconds,
     loggingEnabled = true) {
     case ActorInitializationException(actor, message, throwable) =>
       log.error(s"$actor not able to Initialize.\n Message: $message. \n Error: ${throwable.getMessage}")
-      Restart
+      context.system.shutdown()
+      Stop
+
     case e =>
       log.error("Unexpected failure: {}", e.getMessage)
       Escalate

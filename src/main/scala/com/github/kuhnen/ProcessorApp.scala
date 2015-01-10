@@ -15,8 +15,11 @@ object ProcessorApp {
 
   def main(args: Array[String]) {
 
-    args foreach println
+    //args foreach println
 
+    println(alligatorConf)
+
+    Thread.sleep(5000)
     implicit val formats = DefaultFormats
     val roles = sys.env.get("ROLES")
 

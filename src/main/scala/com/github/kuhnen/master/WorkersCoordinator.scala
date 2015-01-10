@@ -6,7 +6,7 @@ import com.github.kuhnen.master.MasterWorkerProtocol.{Register, Unregister}
 import com.github.kuhnen.master.WorkersCoordinator.{Topics, Work, WorkingTopics}
 import com.github.kuhnen.master.kafka.KafkaTopicWatcherActor.TopicsAvailable
 
-
+import scala.concurrent.duration._
 /**
  * Created by kuhnen on 12/23/14.
  */
@@ -24,8 +24,10 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
     log.info(s"Topics to Work: $availableTopics")
     val workersName = workers.map(_.path)
     log.info(s"Workers available: $workersName ")
+    log.info(s"topics by workers: $topicsByWorkerState")
   }
 
+  //TODO  handle the situation when a worker fails while waiting for a response
   def idle: Receive = LoggingReceive {
 
     case Register(worker) => workers = workers + worker
@@ -42,6 +44,7 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
     case TopicsAvailable(topics) =>
       availableTopics = topics
       askAboutWork()
+      context.setReceiveTimeout(5 seconds)
       context.become(waitingForWorkersTopics(workers.size, emptyTopicsByWorker))
       logCoordinatorState()
   }
@@ -59,6 +62,7 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
       val topicsToSend = availableTopics -- workersTopics
       log.info(s"New topics to send to workers: $topicsToSend")
       delegateTopicsToWorkers(topicsToSend, updatedTopicsByWorker)
+      context.setReceiveTimeout(Duration.Undefined)
 
     case Topics(topics) =>
       val updatedTopicsByWorker = updateTopicsByWorker(sender(), topics, topicsByWorker)
@@ -66,6 +70,9 @@ class WorkersCoordinator extends Actor with Stash with ActorLogging {
 
     case msg: Register => stash()
     case msg: Unregister => stash()
+    case ReceiveTimeout =>
+      unstashAll()
+      context.become(idle)
 
   }
 

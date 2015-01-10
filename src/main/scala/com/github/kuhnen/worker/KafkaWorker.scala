@@ -39,11 +39,12 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
   var consumerByName = Map.empty[String, AkkaConsumer[_, _]]
   val groupPrefix = ConsumerConfig.groupPrefix
   //It should be on preStart?
-  val register = context.system.scheduler.schedule(10 seconds, 5 seconds) { sendToMaster(RegisterWorkerOnCluster(self)) }
+  val register = context.system.scheduler.schedule(10 seconds, 30 seconds) { sendToMaster(RegisterWorkerOnCluster(self)) }
 
   def receive =  registering
 
   def registering: Receive = {
+
     case Registered =>
       //TODO cancel registering  (NOT SO SIMPLE)  read the ticket
       //log.info(s"$self was successfully registered on $sender")
@@ -72,7 +73,10 @@ class KafkaWorker(clusterClient: ActorRef, msgReceiverMaker: (ActorRefFactory, S
 
     }
 
+
+
     case Work(topic) => log.error(s"Something strange happened, this node is already working with $topic")
+
 
   }
 
